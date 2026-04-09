@@ -34,18 +34,15 @@ function DashboardPage() {
         //   setShowCreateModal(false);
         //   navigate(`/session/${data.session._id}`);
         // },
-          console.log("Full Backend Response:", data); // Check this in your browser console!
-  
           setShowCreateModal(false);
 
-          // Use Optional Chaining (?.) to prevent crashing if the path is wrong
-          const sessionId = data?.session?._id || data?._id || data?.id;
+          // Match the structure from your controller: res.status(201).json({ session })
+          const sessionId = data?.session?._id;
 
           if (sessionId) {
             navigate(`/session/${sessionId}`);
           } else {
-          // This helps you find the bug without showing a generic red toast
-            console.error("Could not find session ID in response");
+            console.error("Session created but ID was not found in response:", data);
           }
         },
       }
