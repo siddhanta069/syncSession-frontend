@@ -7,7 +7,8 @@ import { Panel, PanelGroup, PanelResizeHandle } from "react-resizable-panels";
 import ProblemDescription from "../components/ProblemDescription";
 import OutputPanel from "../components/OutputPanel";
 import CodeEditorPanel from "../components/CodeEditorPanel";
-import { executeCode } from "../lib/piston";
+// import { executeCode } from "../lib/piston";
+import { runCode } from "../lib/codeRunner";
 
 import toast from "react-hot-toast";
 import confetti from "canvas-confetti";
@@ -56,53 +57,93 @@ function ProblemPage() {
     });
   };
 
-  const normalizeOutput = (output) => {
-    // normalize output for comparison (trim whitespace, handle different spacing)
-    return output
-      .trim()
-      .split("\n")
-      .map((line) =>
-        line
-          .trim()
-          // remove spaces after [ and before ]
-          .replace(/\[\s+/g, "[")
-          .replace(/\s+\]/g, "]")
-          // normalize spaces around commas to single space after comma
-          .replace(/\s*,\s*/g, ",")
-      )
-      .filter((line) => line.length > 0)
-      .join("\n");
-  };
+  // const normalizeOutput = (output) => {
+  //   // normalize output for comparison (trim whitespace, handle different spacing)
+  //   return output
+  //     .trim()
+  //     .split("\n")
+  //     .map((line) =>
+  //       line
+  //         .trim()
+  //         // remove spaces after [ and before ]
+  //         .replace(/\[\s+/g, "[")
+  //         .replace(/\s+\]/g, "]")
+  //         // normalize spaces around commas to single space after comma
+  //         .replace(/\s*,\s*/g, ",")
+  //     )
+  //     .filter((line) => line.length > 0)
+  //     .join("\n");
+  // };
 
-  const checkIfTestsPassed = (actualOutput, expectedOutput) => {
-    const normalizedActual = normalizeOutput(actualOutput);
-    const normalizedExpected = normalizeOutput(expectedOutput);
+  // const checkIfTestsPassed = (actualOutput, expectedOutput) => {
+  //   const normalizedActual = normalizeOutput(actualOutput);
+  //   const normalizedExpected = normalizeOutput(expectedOutput);
 
-    return normalizedActual == normalizedExpected;
-  };
+  //   return normalizedActual == normalizedExpected;
+  // };
 
-  const handleRunCode = async () => {
+  // const handleRunCode = async () => {
+  //   setIsRunning(true);
+  //   setOutput(null);
+
+  //   const result = await executeCode(selectedLanguage, code);
+  //   setOutput(result);
+  //   setIsRunning(false);
+
+  //   // check if code executed successfully and matches expected output
+
+  //   if (result.success) {
+  //     const expectedOutput = currentProblem.expectedOutput[selectedLanguage];
+  //     const testsPassed = checkIfTestsPassed(result.output, expectedOutput);
+
+  //     if (testsPassed) {
+  //       triggerConfetti();
+  //       toast.success("All tests passed! Great job!");
+  //     } else {
+  //       toast.error("Tests failed. Check your output!");
+  //     }
+  //   } else {
+  //     toast.error("Code execution failed!");
+  //   }
+  // };
+
+  const handleRunCode = () => {
     setIsRunning(true);
     setOutput(null);
 
-    const result = await executeCode(selectedLanguage, code);
-    setOutput(result);
+    const result = runCode(code, currentProblem);
+
     setIsRunning(false);
 
-    // check if code executed successfully and matches expected output
+    if (!result.success) {
+      setOutput({
+        success: false,
+        error: result.error,
+      });
+      toast.error(result.error);
+      return;
+    }
 
-    if (result.success) {
-      const expectedOutput = currentProblem.expectedOutput[selectedLanguage];
-      const testsPassed = checkIfTestsPassed(result.output, expectedOutput);
+    // convert results → string output (like before)
+    const outputText = result.results
+      .map((r, i) => {
+        if (r.error) return `Test ${i + 1}: Error - ${r.error}`;
+        return `Test ${i + 1}: ${r.passed ? "Passed ✅" : "Failed ❌"}`;
+      })
+      .join("\n");
 
-      if (testsPassed) {
-        triggerConfetti();
-        toast.success("All tests passed! Great job!");
-      } else {
-        toast.error("Tests failed. Check your output!");
-      }
+    setOutput({
+      success: true,
+      output: outputText,
+    });
+
+    const allPassed = result.results.every(r => r.passed);
+
+    if (allPassed) {
+      triggerConfetti();
+      toast.success("All tests passed! Great job!");
     } else {
-      toast.error("Code execution failed!");
+      toast.error("Some tests failed!");
     }
   };
 
